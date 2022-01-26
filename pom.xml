@@ -106,7 +106,7 @@
     </properties>
 
     <modules>
-        <module>client</module>
+        <module>client</module>z
         <module>common</module>
         <module>broker</module>
         <module>tools</module>

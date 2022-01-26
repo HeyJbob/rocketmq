@@ -564,6 +564,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
     }
 
+    //发送消息
     private SendResult sendDefaultImpl(
         Message msg,
         final CommunicationMode communicationMode,

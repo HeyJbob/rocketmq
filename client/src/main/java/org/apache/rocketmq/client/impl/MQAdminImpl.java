@@ -81,11 +81,16 @@ public class MQAdminImpl {
 
     public void createTopic(String key, String newTopic, int queueNum, int topicSysFlag) throws MQClientException {
         try {
+        	//校验topic
             Validators.checkTopic(newTopic);
+            //是否是系统自带topic
             Validators.isSystemTopic(newTopic);
+            //获取topic路由信息从 服务注册中心
             TopicRouteData topicRouteData = this.mQClientFactory.getMQClientAPIImpl().getTopicRouteInfoFromNameServer(key, timeoutMillis);
+            //获取brokerList
             List<BrokerData> brokerDataList = topicRouteData.getBrokerDatas();
             if (brokerDataList != null && !brokerDataList.isEmpty()) {
+            	//排序
                 Collections.sort(brokerDataList);
 
                 boolean createOKAtLeastOnce = false;
@@ -94,6 +99,7 @@ public class MQAdminImpl {
                 StringBuilder orderTopicString = new StringBuilder();
 
                 for (BrokerData brokerData : brokerDataList) {
+                	//获取broker的地址
                     String addr = brokerData.getBrokerAddrs().get(MixAll.MASTER_ID);
                     if (addr != null) {
                         TopicConfig topicConfig = new TopicConfig(newTopic);
