@@ -47,12 +47,18 @@ public class OneWaySendIT extends BaseConf {
         super.shutdown();
     }
 
+    //
     @Test
     public void testOneWaySendWithOnlyMsgAsParam() {
         int msgSize = 20;
         RMQNormalConsumer consumer = getConsumer(nsAddr, topic, "*", new RMQNormalListener());
 
+        //单次进行发送：channel.writeAndFlush(request).addListener
+
+		//async异步: 发送后记录
+		//sync同步：传入callback
         producer.sendOneWay(msgSize);
+
         producer.waitForResponse(5 * 1000);
         assertThat(producer.getAllMsgBody().size()).isEqualTo(msgSize);
 

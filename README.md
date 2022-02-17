@@ -10,7 +10,7 @@
 
 **[Apache RocketMQ](https://rocketmq.apache.org) is a distributed messaging and streaming platform with low latency, high performance and reliability, trillion-level capacity and flexible scalability.**
 
-It offers a variety of features:
+_It offers a variety of features:_
 
 * Messaging patterns including publish/subscribe, request/reply and streaming
 * Financial grade transactional message
@@ -80,7 +80,53 @@ support authentication, and encryption and decryption of data sent across the ne
 services.
 
 源码注释：
+1.producer
 OneWaySendIT
 MQAdminImpl
 
+2.broker
+SendMessageProcessorTest.testProcessRequest_Transaction
+//接受请求处理器
+SendMessageProcessor
+NettyRemotingAbstract.processRequestCommand()
+BrokerController
+
+//commitLog刷盘间隔
+@ImportantField
+private int flushIntervalCommitLog = 500;
+
+//提交刷盘请求
+CompletableFuture<PutMessageStatus> flushResultFuture = submitFlushRequest(result, msg);
+//提交副本同步请求
+CompletableFuture<PutMessageStatus> replicaResultFuture = submitReplicaRequest(result, msg);
+
+DefaultMessageStore.asyncPutMessage 异步存储消息
+TransactionalMessageBridge.parseHalfMessageInner 事务消息处理
+CommitLog.asyncPutMessage 异步存消息
+
+延迟队列：
+定时消费schedule队列
+ScheduleMessageService.this.timer.schedule(
+new DeliverDelayedMessageTimerTask(this.delayLevel,
+nextOffset), DELAY_FOR_A_PERIOD);
+
+
+3.consumer：
+NettyRemotingAbstract.invokeAsyncImpl
+
+pull请求
+//带有回调的异步调用 
+public void invokeAsyncImpl
+
+DefaultMQPullConsumerTest.testPullMessage_Success
+
+PullMessageService.run
+DefaultMQPushConsumerImpl.pullMessage
+
+//push方式，仍是以pull的方式实现：
+DefaultMQPushConsumerTest.testPullMessage_Success
+
+//启动拉取服务
+MQClientInstance
+this.pullMessageService.start();
 

@@ -240,6 +240,7 @@ public class MQClientInstance {
                     // Start rebalance service
                     this.rebalanceService.start();
                     // Start push service
+					//开始推送服务
                     this.defaultMQProducer.getDefaultMQProducerImpl().start(false);
                     log.info("the client factory [{}] start OK", this.clientId);
                     this.serviceState = ServiceState.RUNNING;

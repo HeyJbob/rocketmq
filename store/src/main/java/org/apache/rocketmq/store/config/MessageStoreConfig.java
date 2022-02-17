@@ -50,6 +50,7 @@ public class MessageStoreConfig {
 
     // CommitLog flush interval
     // flush data to disk
+	//commitLog刷盘间隔
     @ImportantField
     private int flushIntervalCommitLog = 500;
 

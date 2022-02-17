@@ -63,6 +63,7 @@ public class CommitLog {
     private final FlushCommitLogService flushCommitLogService;
 
     //If TransientStorePool enabled, we must flush message to FileChannel at fixed periods
+	//如果启用了瞬态存储池，我们必须在固定的时间刷新消息到FileChannel
     private final FlushCommitLogService commitLogService;
 
     private final AppendMessageCallback appendMessageCallback;
@@ -586,8 +587,10 @@ public class CommitLog {
         return keyBuilder.toString();
     }
 
+    //异步commitLog添加消息
     public CompletableFuture<PutMessageResult> asyncPutMessage(final MessageExtBrokerInner msg) {
         // Set the storage time
+		//记录存储时间戳
         msg.setStoreTimestamp(System.currentTimeMillis());
         // Set the message body BODY CRC (consider the most appropriate setting
         // on the client)
@@ -603,16 +606,18 @@ public class CommitLog {
         final int tranType = MessageSysFlag.getTransactionValue(msg.getSysFlag());
         if (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE
                 || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
-            // Delay Delivery
+            // Delay Delivery  延迟消息
             if (msg.getDelayTimeLevel() > 0) {
+            	//如果延迟等级参数大于 最大延迟等级，那么等级设置为最大。
                 if (msg.getDelayTimeLevel() > this.defaultMessageStore.getScheduleMessageService().getMaxDelayLevel()) {
                     msg.setDelayTimeLevel(this.defaultMessageStore.getScheduleMessageService().getMaxDelayLevel());
                 }
 
                 topic = TopicValidator.RMQ_SYS_SCHEDULE_TOPIC;
+                //延迟等级转为队列id:-1
                 queueId = ScheduleMessageService.delayLevel2QueueId(msg.getDelayTimeLevel());
 
-                // Backup real topic, queueId
+                // Backup real topic, queueId:      真实的topic 队列id 记录到msg属性中。
                 MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REAL_TOPIC, msg.getTopic());
                 MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REAL_QUEUE_ID, String.valueOf(msg.getQueueId()));
                 msg.setPropertiesString(MessageDecoder.messageProperties2String(msg.getProperties()));
@@ -643,8 +648,10 @@ public class CommitLog {
         long elapsedTimeInLock = 0;
         MappedFile unlockMappedFile = null;
 
+        //自旋或冲入锁，根据存储配置
         putMessageLock.lock(); //spin or ReentrantLock ,depending on store config
         try {
+        	//获取最后一个内存映射文件
             MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile();
             long beginLockTimestamp = this.defaultMessageStore.getSystemClock().now();
             this.beginTimeInLock = beginLockTimestamp;
@@ -710,7 +717,9 @@ public class CommitLog {
         storeStatsService.getSinglePutMessageTopicTimesTotal(msg.getTopic()).add(1);
         storeStatsService.getSinglePutMessageTopicSizeTotal(topic).add(result.getWroteBytes());
 
+        //提交刷盘请求
         CompletableFuture<PutMessageStatus> flushResultFuture = submitFlushRequest(result, msg);
+		//提交副本请求
         CompletableFuture<PutMessageStatus> replicaResultFuture = submitReplicaRequest(result, msg);
         return flushResultFuture.thenCombine(replicaResultFuture, (flushStatus, replicaStatus) -> {
             if (flushStatus != PutMessageStatus.PUT_OK) {
@@ -847,6 +856,7 @@ public class CommitLog {
 
     public CompletableFuture<PutMessageStatus> submitFlushRequest(AppendMessageResult result, MessageExt messageExt) {
         // Synchronization flush
+		//同步刷盘
         if (FlushDiskType.SYNC_FLUSH == this.defaultMessageStore.getMessageStoreConfig().getFlushDiskType()) {
             final GroupCommitService service = (GroupCommitService) this.flushCommitLogService;
             if (messageExt.isWaitStoreMsgOK()) {
@@ -1286,7 +1296,7 @@ public class CommitLog {
             final MessageExtBrokerInner msgInner, PutMessageContext putMessageContext) {
             // STORETIMESTAMP + STOREHOSTADDRESS + OFFSET <br>
 
-            // PHY OFFSET
+            // PHY OFFSET   物理偏移量
             long wroteOffset = fileFromOffset + byteBuffer.position();
 
             Supplier<String> msgIdSupplier = () -> {
@@ -1301,17 +1311,19 @@ public class CommitLog {
 
             // Record ConsumeQueue information
             String key = putMessageContext.getTopicQueueTableKey();
+            //主题-队列：偏移量
             Long queueOffset = CommitLog.this.topicQueueTable.get(key);
             if (null == queueOffset) {
                 queueOffset = 0L;
                 CommitLog.this.topicQueueTable.put(key, queueOffset);
             }
 
-            // Transaction messages that require special handling
+            // Transaction messages that require special handling  事务消息特殊处理
             final int tranType = MessageSysFlag.getTransactionValue(msgInner.getSysFlag());
             switch (tranType) {
                 // Prepared and Rollback message is not consumed, will not enter the
                 // consumer queuec
+				//预发和回滚消息 没有被消费，不会进入消费者队列
                 case MessageSysFlag.TRANSACTION_PREPARED_TYPE:
                 case MessageSysFlag.TRANSACTION_ROLLBACK_TYPE:
                     queueOffset = 0L;
@@ -1326,14 +1338,15 @@ public class CommitLog {
             final int msgLen = preEncodeBuffer.getInt(0);
 
             // Determines whether there is sufficient free space
-            if ((msgLen + END_FILE_MIN_BLANK_LENGTH) > maxBlank) {
+			//确定是否有足够的空闲空间
+			if ((msgLen + END_FILE_MIN_BLANK_LENGTH) > maxBlank) {
                 this.msgStoreItemMemory.clear();
                 // 1 TOTALSIZE
                 this.msgStoreItemMemory.putInt(maxBlank);
                 // 2 MAGICCODE
                 this.msgStoreItemMemory.putInt(CommitLog.BLANK_MAGIC_CODE);
                 // 3 The remaining space may be any value
-                // Here the length of the specially set maxBlank
+                // Here the length of the specially set maxBlank  剩余空间可以是任何值 这里是特殊设置的maxBlank的长度
                 final long beginTimeMills = CommitLog.this.defaultMessageStore.now();
                 byteBuffer.put(this.msgStoreItemMemory.array(), 0, 8);
                 return new AppendMessageResult(AppendMessageStatus.END_OF_FILE, wroteOffset,

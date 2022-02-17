@@ -66,6 +66,7 @@ public abstract class NettyRemotingAbstract {
 
     /**
      * Semaphore to limit maximum number of on-going asynchronous requests, which protects system memory footprint.
+	 * 信号量去限制 执行中的请求最大数，保护系统内存
      */
     protected final Semaphore semaphoreAsync;
 
@@ -99,6 +100,7 @@ public abstract class NettyRemotingAbstract {
 
     /**
      * custom rpc hooks
+	 * 自定义rpc钩子
      */
     protected List<RPCHook> rpcHooks = new ArrayList<RPCHook>();
 
@@ -307,6 +309,7 @@ public abstract class NettyRemotingAbstract {
 
     /**
      * Execute callback in callback executor. If callback executor is null, run directly in current thread
+	 * 在回调执行程序中执行回调，
      */
     private void executeInvokeCallback(final ResponseFuture responseFuture) {
         boolean runInThisThread = false;
@@ -371,6 +374,7 @@ public abstract class NettyRemotingAbstract {
     /**
      * This method specifies thread pool to use while invoking callback methods.
      *
+	 *
      * @return Dedicated thread pool instance if specified; or null if the callback is supposed to be executed in the
      * netty event-loop thread.
      */
@@ -447,6 +451,7 @@ public abstract class NettyRemotingAbstract {
         }
     }
 
+    //带有回调的异步调用
     public void invokeAsyncImpl(final Channel channel, final RemotingCommand request, final long timeoutMillis,
         final InvokeCallback invokeCallback)
         throws InterruptedException, RemotingTooMuchRequestException, RemotingTimeoutException, RemotingSendRequestException {

@@ -88,8 +88,10 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
                 }
                 case READ_FROM_STORE: {
                     try {
+                    	//获取消费偏移量从 broker
                         long brokerOffset = this.fetchConsumeOffsetFromBroker(mq);
                         AtomicLong offset = new AtomicLong(brokerOffset);
+                        //更新内存中的偏移量
                         this.updateOffset(mq, offset.get(), false);
                         return brokerOffset;
                     }

@@ -241,6 +241,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 @Override
                 public void run() {
                     try {
+                    	//扫描过期的请求
                         RequestFutureTable.scanExpiredRequest();
                     } catch (Throwable e) {
                         log.error("scan RequestFutureTable exception", e);
@@ -604,6 +605,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                             break;
                         }
 
+                        //发送内核
                         sendResult = this.sendKernelImpl(msg, mq, communicationMode, sendCallback, topicPublishInfo, timeout - costTime);
                         endTimestamp = System.currentTimeMillis();
                         this.updateFaultItem(mq.getBrokerName(), endTimestamp - beginTimestampPrev, false);
@@ -785,13 +787,16 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     context.setMq(mq);
                     context.setNamespace(this.defaultMQProducer.getNamespace());
                     String isTrans = msg.getProperty(MessageConst.PROPERTY_TRANSACTION_PREPARED);
+                    //判断是否事务消息
                     if (isTrans != null && isTrans.equals("true")) {
                         context.setMsgType(MessageType.Trans_Msg_Half);
                     }
 
+                    //判断是否延迟消息
                     if (msg.getProperty("__STARTDELIVERTIME") != null || msg.getProperty(MessageConst.PROPERTY_DELAY_TIME_LEVEL) != null) {
                         context.setMsgType(MessageType.Delay_Msg);
                     }
+                    //执行前置钩子
                     this.executeSendMessageHookBefore(context);
                 }
 
@@ -824,6 +829,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
                 SendResult sendResult = null;
                 switch (communicationMode) {
+                	//async
                     case ASYNC:
                         Message tmpMessage = msg;
                         boolean messageCloned = false;

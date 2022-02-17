@@ -39,6 +39,7 @@ public class AclClientRPCHook implements RPCHook {
 
     @Override
     public void doBeforeRequest(String remoteAddr, RemotingCommand request) {
+    	//请求之前拦截，request中加入权限校验字段
         byte[] total = AclUtils.combineRequestContent(request,
             parseRequestContent(request, sessionCredentials.getAccessKey(), sessionCredentials.getSecurityToken()));
         String signature = AclUtils.calSignature(total, sessionCredentials.getSecretKey());
